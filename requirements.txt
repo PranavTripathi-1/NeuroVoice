@@ -1,6 +1,6 @@
 streamlit
 streamlit-lottie
-st-audiorec
+st-audio_input
 transformers
 torch
 librosa
