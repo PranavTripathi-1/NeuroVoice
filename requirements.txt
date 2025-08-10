@@ -18,3 +18,5 @@ joblib
 numpy
 plotly
 requests
+tensorflow
+tensorflow-hub
