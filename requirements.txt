@@ -1,6 +1,13 @@
 streamlit
 streamlit-lottie
-st-audio_input
+streamlit>=1.32
+streamlit-lottie
+soundfile
+librosa
+numpy
+pandas
+matplotlib
+scikit-learn
 transformers
 torch
 librosa
