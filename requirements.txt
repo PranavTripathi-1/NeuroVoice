@@ -1,0 +1,13 @@
+streamlit
+streamlit-lottie
+st-audiorec
+transformers
+torch
+librosa
+soundfile
+pydub
+scikit-learn
+joblib
+numpy
+plotly
+requests
