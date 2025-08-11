@@ -16,7 +16,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 def load_emotion_model():
     return load_model(MODEL_PATH)
 
-model = load_emotion_model()
+model = load_model('models/speech_disease_model.h5')
 
 # Emotion labels (update according to your training)
 EMOTIONS = ["Neutral", "Happy", "Sad", "Angry"]
