@@ -1,78 +1,80 @@
-import streamlit as st
-import librosa
-import numpy as np
-import soundfile as sf
+import sys
 import os
+import random
+import numpy as np
+import librosa
+import streamlit as st
 from tensorflow.keras.models import load_model
-import matplotlib.pyplot as plt
 
-# Paths
-MODEL_PATH = "models/emotion_model.h5"
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# ======================
+# FIX PATH ISSUE
+# ======================
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, BASE_DIR)
 
-# Load model
-@st.cache_resource
-def load_emotion_model():
-    return load_model(MODEL_PATH)
+from src.features import extract_features  # your existing function
 
-model = load_model('models/speech_disease_model.h5')
+# ======================
+# LOAD MODEL
+# ======================
+MODEL_PATH = os.path.join(BASE_DIR, "models", "speech_disease_model.h5")
+model = load_model(MODEL_PATH)
 
-# Emotion labels (update according to your training)
-EMOTIONS = ["Neutral", "Happy", "Sad", "Angry"]
+# ======================
+# DATA PATHS
+# ======================
+PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed")
+EMOTIONS = ["angry", "fear", "happy", "neutral", "sad", "surprise"]
 
-# Feature extraction
-def extract_features(audio_file):
-    y, sr = librosa.load(audio_file, sr=None)
-    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
-    mfcc_scaled = np.mean(mfcc.T, axis=0)
-    return mfcc_scaled.reshape(1, -1)
+# ======================
+# STREAMLIT APP
+# ======================
+st.title("🎤 NeuroVoice - Emotion Detection from Speech")
+st.markdown("Upload your voice or test with a sample audio from the dataset.")
 
-# Predict emotion
-def predict_emotion(audio_file):
-    features = extract_features(audio_file)
-    prediction = model.predict(features)
-    emotion_index = np.argmax(prediction)
-    return EMOTIONS[emotion_index], prediction[0]
+# ----------------------
+# Prediction Function
+# ----------------------
+def predict_emotion(file_path):
+    try:
+        features = extract_features(file_path)
+        features = np.expand_dims(features, axis=0)
+        prediction = model.predict(features)
+        predicted_index = np.argmax(prediction)
+        return EMOTIONS[predicted_index]
+    except Exception as e:
+        return f"Error processing file: {str(e)}"
 
-# Streamlit UI
-st.set_page_config(page_title="NeuroVoice - Emotion Detection", page_icon="🎤", layout="centered")
+# ----------------------
+# File Upload Section
+# ----------------------
+st.header("📂 Upload Your Own Voice")
+uploaded_file = st.file_uploader("Upload an audio file", type=["wav", "mp3", "ogg"])
 
-st.title("🎙️ NeuroVoice - AI Speech Emotion Detection")
-st.write("Upload or record an audio file to detect emotions in speech.")
+if uploaded_file is not None:
+    temp_path = os.path.join(BASE_DIR, "temp_audio.wav")
+    with open(temp_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
 
-# Audio Upload
-uploaded_audio = st.file_uploader("Upload an audio file (WAV/MP3)", type=["wav", "mp3"])
+    st.audio(temp_path)
+    if st.button("Predict Uploaded Audio"):
+        emotion = predict_emotion(temp_path)
+        st.success(f"Predicted Emotion: **{emotion}**")
 
-# Record Audio
-st.write("Or record audio directly in your browser:")
-audio_recorded = st.audio_input("Record your voice")
+# ----------------------
+# Sample Data Section
+# ----------------------
+st.header("🎯 Test with Sample Data")
+if st.button("Pick Random Sample"):
+    # Choose random emotion folder
+    emotion = random.choice(EMOTIONS)
+    emotion_path = os.path.join(PROCESSED_DIR, emotion)
 
-audio_path = None
+    # Pick random file from that folder
+    sample_file = random.choice(os.listdir(emotion_path))
+    sample_path = os.path.join(emotion_path, sample_file)
 
-if uploaded_audio is not None:
-    audio_path = os.path.join(UPLOAD_DIR, uploaded_audio.name)
-    with open(audio_path, "wb") as f:
-        f.write(uploaded_audio.getbuffer())
-    st.audio(audio_path, format="audio/wav")
-
-elif audio_recorded is not None:
-    audio_path = os.path.join(UPLOAD_DIR, "recorded.wav")
-    with open(audio_path, "wb") as f:
-        f.write(audio_recorded.getbuffer())
-    st.audio(audio_path, format="audio/wav")
-
-# Predict button
-if audio_path and st.button("🔍 Detect Emotion"):
-    with st.spinner("Analyzing audio..."):
-        emotion, probabilities = predict_emotion(audio_path)
-    
-    st.success(f"Detected Emotion: **{emotion}**")
-    
-    # Show probabilities
-    fig, ax = plt.subplots()
-    ax.bar(EMOTIONS, probabilities, color='skyblue')
-    ax.set_ylabel("Confidence")
-    ax.set_title("Emotion Prediction Probabilities")
-    st.pyplot(fig)
-
+    st.audio(sample_path)
+    predicted = predict_emotion(sample_path)
+    st.info(f"Sample Emotion (Folder): **{emotion}**")
+    st.success(f"Predicted Emotion: **{predicted}**")
