@@ -24,15 +24,21 @@ def extract_features(file_path, max_pad_len=100):
     try:
         audio, sr = librosa.load(file_path, sr=SAMPLE_RATE, duration=DURATION)
         mfccs = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=40)
+
+        # Pad or trim to ensure consistent length
         if mfccs.shape[1] < max_pad_len:
             pad_width = max_pad_len - mfccs.shape[1]
             mfccs = np.pad(mfccs, pad_width=((0, 0), (0, pad_width)), mode='constant')
         else:
             mfccs = mfccs[:, :max_pad_len]
+
+        # Add the channel dimension for CNN input
+        mfccs = np.expand_dims(mfccs, axis=-1)  # (40, 100, 1)
         return mfccs
     except Exception as e:
         print(f"Error processing {file_path}: {e}")
         return None
+
 
 # Load dataset
 def load_dataset(data_path):

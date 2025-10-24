@@ -3,37 +3,21 @@
 import numpy as np
 import librosa
 
-def extract_features(file_path, mfcc=True, chroma=True, mel=True):
-    """
-    Extract audio features (MFCC, Chroma, Mel) from an audio file.
-    
-    Parameters:
-        file_path (str): Path to the audio file.
-        mfcc (bool): Whether to extract MFCC features.
-        chroma (bool): Whether to extract Chroma features.
-        mel (bool): Whether to extract Mel Spectrogram features.
-    
-    Returns:
-        np.ndarray: Combined feature vector.
-    """
+def extract_features(file_path, max_pad_len=100):
     try:
         X, sample_rate = librosa.load(file_path, sr=None, mono=True)
-        features = np.array([])
+        mfccs = librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=40)
 
-        if mfcc:
-            mfccs = np.mean(librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=40).T, axis=0)
-            features = np.hstack((features, mfccs))
+        # Pad / truncate to make shape (40, 100)
+        if mfccs.shape[1] < max_pad_len:
+            pad_width = max_pad_len - mfccs.shape[1]
+            mfccs = np.pad(mfccs, pad_width=((0, 0), (0, pad_width)), mode='constant')
+        else:
+            mfccs = mfccs[:, :max_pad_len]
 
-        if chroma:
-            stft = np.abs(librosa.stft(X))
-            chroma_feat = np.mean(librosa.feature.chroma_stft(S=stft, sr=sample_rate).T, axis=0)
-            features = np.hstack((features, chroma_feat))
-
-        if mel:
-            mel_feat = np.mean(librosa.feature.melspectrogram(y=X, sr=sample_rate).T, axis=0)
-            features = np.hstack((features, mel_feat))
-
-        return features
+        # Add channel dimension
+        mfccs = np.expand_dims(mfccs, axis=-1)  # (40, 100, 1)
+        return mfccs
 
     except Exception as e:
         print(f"Error extracting features from {file_path}: {e}")
