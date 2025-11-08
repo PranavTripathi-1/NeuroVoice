@@ -44,7 +44,7 @@ NeuroVoice/
 
 ### 1️⃣ Clone the repository
 ```bash
-git clone https://github.com/your-username/NeuroVoice.git
+git clone https://github.com/PranavTripathi-1/NeuroVoice.git
 cd NeuroVoice
 
 🏆 Future Improvements
